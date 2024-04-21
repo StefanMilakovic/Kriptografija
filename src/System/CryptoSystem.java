@@ -51,13 +51,6 @@ public class CryptoSystem
 
         if(certificate!=null)
         {
-            /*
-            X500Principal subjectPrincipal = certificate.getSubjectX500Principal();
-            String certInfo= subjectPrincipal.getName(X500Principal.RFC2253);
-            System.out.println("       Sertifikat: "+certInfo);
-
-             */
-
             System.out.print("    Unesite korisnicko ime: ");
             tempName=scan.nextLine();
             System.out.print("    Unesite lozinku: ");
@@ -66,7 +59,7 @@ public class CryptoSystem
             User tempUsr=Users.get(tempName);
             if((tempUsr.password).equals(password))
             {
-                if(validateCertificate(tempUsr,certificate))
+                if(verifyCertificate(tempUsr,certificate))
                 {
                     System.out.println("Uspjesna prijava!");
                     loggedInOptions(tempUsr);
@@ -83,7 +76,6 @@ public class CryptoSystem
     }
     public void issueDigitalCert(User user)
     {
-
         //generisanje zahtjeva za sertifikat
         String command="openssl req -new -key ./private/"+user.name+".key -passin pass:"+user.password+" -out ./requests/"+user.name+".csr -config openssl.cnf -subj \"/C=BA/ST=RS/O=Elektrotehnicki fakultet/OU=ETF/CN="+user.name+ "\"";
 
@@ -98,6 +90,7 @@ public class CryptoSystem
     }
     public void generateRSA(User user)
     {
+        //passout se koristi za zastitu kljuca
         String command = "openssl genrsa -aes256 -passout pass:" + user.password + " -out ./private/" + user.name + ".key 4096";
         //String command="openssl genrsa -out ./private/"+user.name+".key 4096";
         CommandExecutor.executeCommand(command);
@@ -164,7 +157,7 @@ public class CryptoSystem
         }
         return certificate;
     }
-    public boolean validateCertificate(User user,X509Certificate certificate)
+    public boolean verifyCertificate(User user, X509Certificate certificate)
     {
         X500Principal subjectPrincipal = certificate.getSubjectX500Principal();
         String certInfo= subjectPrincipal.getName(X500Principal.RFC2253);
@@ -175,13 +168,17 @@ public class CryptoSystem
             return false;
         }
 
+        /*
         Date validTo = certificate.getNotAfter();
         Date currentDate=new Date();
         if (currentDate.after(validTo)) {
             System.out.println("Sertifikat je istekao");
             return false;
         }
-        return true;
+         */
+        String command="openssl verify -CAfile rootCA.crt ./certs/"+user.name+"Cert.crt";
+        String temp=CommandExecutor.executeCommand(command);
+        return temp.endsWith("OK");
     }
 
     public void systemMenu()
@@ -321,7 +318,7 @@ public class CryptoSystem
 
     public void signFile(User user)
     {
-        //-passin pass:" + user.password
+        //digitalni potpis koristeci privatni kljuc korisnika
         String command="openssl dgst -sign ./private/"+user.name+".key -passin pass:"+user.password+" -out ./Users/"+user.name+"/digitalSignature.pem ./Users/"+user.name+"/SimulationResult.dat";
 
         //String command="openssl dgst -sign ./private/"+user.name+".key -out ./Users/"+user.name+"/digitalSignature.pem ./Users/"+user.name+"/SimulationResult.dat";
@@ -330,6 +327,7 @@ public class CryptoSystem
 
     public boolean verifySignature(User user)
     {
+        //verifikacija digitalnog potpisa privatnim* kljucem
         String command="openssl dgst -prverify ./private/"+user.name+".key -passin pass:"+user.password+" -signature ./Users/"+user.name+"/digitalSignature.pem ./Users/"+user.name+"/SimulationResult.dat";
 
         //String command="openssl dgst -prverify ./private/"+user.name+".key  -signature ./Users/"+user.name+"/digitalSignature.pem ./Users/"+user.name+"/SimulationResult.dat";

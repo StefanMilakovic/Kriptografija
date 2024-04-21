@@ -51,8 +51,6 @@ public class Playfair
                 output.append(' ');
             }
         }
-
-
         System.out.println("\nEnkriptovano: "+output);
         return output.toString();
     }
@@ -91,8 +89,6 @@ public class Playfair
         }
         return x;
     }
-
-
 
     private static void setMatrix(String key)
     {
